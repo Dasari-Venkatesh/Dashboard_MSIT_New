@@ -46,7 +46,7 @@ def send_email(email, username):
     server.quit()
 
 
-def get_scores_from_excel():
+def get_data_from_excel(keyword):
     SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
     
     creds = None
@@ -66,8 +66,12 @@ def get_scores_from_excel():
     service = build('sheets', 'v4', credentials=creds)
 
     sheet = service.spreadsheets()
-    result_input = sheet.values().get(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
-                                range='A1:AA1000').execute()
+    if keyword == 'scores':
+        result_input = sheet.values().get(spreadsheetId=os.environ.get('SPREADSHEET_ID'),
+                                    range='A1:AA1000').execute()
+    elif keyword == 'role':
+        result_input = sheet.values().get(spreadsheetId=os.environ.get('SPREADSHEET_ID_ROLES'),
+                                    range='A1:AA1000').execute()
     values_input = result_input.get('values', [])
 
     if not values_input:
