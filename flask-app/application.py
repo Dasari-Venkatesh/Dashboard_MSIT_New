@@ -73,6 +73,19 @@ def get_scores(student_email):
     return jsonify({'message': "Email Not found"})
 
 
+@app.route("/get_role/<string:email>")
+def get_role(email):
+    values = get_data_from_excel('role')
+    headers = values[0]
+    json_str = None
+    for row in values[1:]:
+        if row[0] == email:
+            row_dict = dict(zip(headers, row))
+            json_str = json.dumps(row_dict, indent=4)
+    if json_str:
+        return json_str
+    return jsonify({'message': "Email Not found"})
+
 
 @app.route('/add-user/', methods=['POST'])
 def add_user():
