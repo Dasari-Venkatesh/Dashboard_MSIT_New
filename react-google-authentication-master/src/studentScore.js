@@ -20,6 +20,7 @@ function StudentScores() {
       } finally {
         setLoading(false);
       }
+      
     };
     fetchData();
   }, []);
