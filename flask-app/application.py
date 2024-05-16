@@ -1,28 +1,19 @@
-import io
 import sys
 import os
 import csv
 import json
 import pandas as pd
 import datetime
-
-from flask import Flask, render_template, jsonify, request
-from flask_cors import CORS
-from collections import OrderedDict
-from collections import defaultdict
-from utils import user_exists, send_email, create_spreadsheets_service, write_users_to_excel, get_unregistered_users
-
-import sys
-sys.path.append('C:/Python39/Lib/site-packages')
-from flask import Flask, render_template, jsonify, request
-from flask_cors import CORS
-import csv, json
-import pandas as pd
-from collections import OrderedDict
-from collections import defaultdict
-import datetime
-import os
 import gspread
+
+from flask import Flask, render_template, jsonify, request
+from flask_cors import CORS
+from collections import OrderedDict
+from collections import defaultdict
+
+sys.path.append('C:/Python39/Lib/site-packages')
+
+
 from oauth2client.service_account import ServiceAccountCredentials
 from dotenv import load_dotenv
 
@@ -328,7 +319,7 @@ def get_presentation_scores():
 
 def check_duplicate(email):
     existing_data = users_worksheet.get_all_values()
-    existing_emails = [row[0] for row in existing_data]  # Assuming emails are in the first column
+    existing_emails = [row[0] for row in existing_data]
     return email in existing_emails
 
 def add_to_google_sheets(values):
@@ -336,17 +327,17 @@ def add_to_google_sheets(values):
 
 
 def process_data(data):
-    existing_emails = [row[0].lower() for row in users_worksheet.get_all_values()]  # Fetch existing emails from Google Sheet in lowercase
+    existing_emails = [row[0].lower() for row in users_worksheet.get_all_values()]
     unique_rows = []
     
-    if isinstance(data, dict):  # Single JSON object
+    if isinstance(data, dict):
         email = data.get('email')
-        if email and email.lower() not in existing_emails:  # Convert email to lowercase for comparison
+        if email and email.lower() not in existing_emails:
             unique_rows.append(list(data.values()))
-    elif isinstance(data, list):  # List of JSON objects
+    elif isinstance(data, list):
         for entry in data:
             email = entry.get('email')
-            if email and email.lower() not in existing_emails:  # Convert email to lowercase for comparison
+            if email and email.lower() not in existing_emails:
                 unique_rows.append(list(entry.values()))
     else:
         return jsonify({'error': 'Invalid data format'})
@@ -354,8 +345,8 @@ def process_data(data):
     if unique_rows:
         add_to_google_sheets(unique_rows)
 
-@app.route('/upload', methods=['POST'])
-def upload():
+@app.route('/add-users/', methods=['POST'])
+def add_users():
     if 'file' in request.files:
         file = request.files['file']
         if file.filename.endswith('.csv'):
@@ -371,12 +362,11 @@ def upload():
 
     return jsonify({'message': 'Data added successfully'})
 
-@app.route('/get_role/<string:email>', methods=['GET'])
-def get_role(email):
 
+@app.route('/get-role/<string:email>', methods=['GET'])
+def get_role(email):
     if not email:
         return jsonify({'error': 'Email parameter is missing'}), 400
-    
     try:
         data = users_worksheet.get_all_records()
         print("Data from Google Sheet:", data)
@@ -392,7 +382,7 @@ def get_role(email):
         return jsonify({'error': str(e)}), 500
     
 
-@app.route('/student-scores/<string:student_email>')
+@app.route('/student-score/<string:student_email>')
 def student_score(student_email):
 
     values = scores_worksheet.get_all_values()
@@ -404,6 +394,24 @@ def student_score(student_email):
             data_json = json.dumps([dict(zip(headers,row))],indent=4)
     if data_json == []:
         return jsonify({'message':"Email Not found"})
+    else:
+        return data_json
+    
+
+@app.route('/all-students-scores')
+def all_students_scores():
+    values = scores_worksheet.get_all_values()
+    data_json = []
+    headers = values[0]
+
+    for sublist in values[1:]:
+        json_object = {}
+        for i, key in enumerate(headers):
+            json_object[key] = sublist[i]
+        data_json.append(json_object)
+
+    if data_json == []:
+        return jsonify({'message':"Data Not found"})
     else:
         return data_json
 
