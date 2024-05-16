@@ -1,13 +1,47 @@
+import io
+import sys
+import os
+import csv
+import json
+import pandas as pd
+import datetime
+
+from flask import Flask, render_template, jsonify, request
+from flask_cors import CORS
+from collections import OrderedDict
+from collections import defaultdict
+from utils import user_exists, send_email, create_spreadsheets_service, write_users_to_excel, get_unregistered_users
+
 import sys
 sys.path.append('C:/Python39/Lib/site-packages')
-
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 import csv, json
 import pandas as pd
-from collections import OrderedDict 
+from collections import OrderedDict
 from collections import defaultdict
 import datetime
+import os
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+from dotenv import load_dotenv
+
+load_dotenv()
+users_sheet_url = os.getenv('users_sheet_url')
+scores_sheet_url = os.getenv('scores_sheet_url')
+creds_path = "./credentials.json"
+credential = ServiceAccountCredentials.from_json_keyfile_name(creds_path,
+                                                              ["https://spreadsheets.google.com/feeds",
+                                                               "https://www.googleapis.com/auth/spreadsheets",
+                                                               "https://www.googleapis.com/auth/drive.file",
+                                                               "https://www.googleapis.com/auth/drive"])
+client = gspread.authorize(credential)
+user_worksheet = client.open_by_url(users_sheet_url)
+users_worksheet = user_worksheet.get_worksheet(0)
+score_worksheet = client.open_by_url(scores_sheet_url)
+scores_worksheet = score_worksheet.get_worksheet(0)
+
+sys.path.append('C:/Python39/Lib/site-packages')
 
 app = Flask(__name__)
 CORS(app)
@@ -288,3 +322,91 @@ def get_presentation_scores():
         ppt_scores[row_data[1].lower()] = row_data_json
     
     return ppt_scores
+
+
+
+
+def check_duplicate(email):
+    existing_data = users_worksheet.get_all_values()
+    existing_emails = [row[0] for row in existing_data]  # Assuming emails are in the first column
+    return email in existing_emails
+
+def add_to_google_sheets(values):
+    users_worksheet.append_rows(values)
+
+
+def process_data(data):
+    existing_emails = [row[0].lower() for row in users_worksheet.get_all_values()]  # Fetch existing emails from Google Sheet in lowercase
+    unique_rows = []
+    
+    if isinstance(data, dict):  # Single JSON object
+        email = data.get('email')
+        if email and email.lower() not in existing_emails:  # Convert email to lowercase for comparison
+            unique_rows.append(list(data.values()))
+    elif isinstance(data, list):  # List of JSON objects
+        for entry in data:
+            email = entry.get('email')
+            if email and email.lower() not in existing_emails:  # Convert email to lowercase for comparison
+                unique_rows.append(list(entry.values()))
+    else:
+        return jsonify({'error': 'Invalid data format'})
+    
+    if unique_rows:
+        add_to_google_sheets(unique_rows)
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    if 'file' in request.files:
+        file = request.files['file']
+        if file.filename.endswith('.csv'):
+            reader = list(csv.DictReader(file.read().decode('utf-8').splitlines()))
+            print(reader)
+            process_data(reader)  
+    else:
+        try:
+            data = json.loads(request.data.decode('utf-8'))
+            process_data(data)
+        except json.JSONDecodeError:
+            return jsonify({'error': 'Invalid JSON data format'})
+
+    return jsonify({'message': 'Data added successfully'})
+
+@app.route('/get_role/<string:email>', methods=['GET'])
+def get_role(email):
+
+    if not email:
+        return jsonify({'error': 'Email parameter is missing'}), 400
+    
+    try:
+        data = users_worksheet.get_all_records()
+        print("Data from Google Sheet:", data)
+        for row in data:
+            print("Row from Google Sheet:", row)
+            if row['email'].lower() == email.lower():
+                print(email)
+                return jsonify({'role': row['role']})
+        
+        return jsonify({'error': 'Email not found'}), 404
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+
+@app.route('/student-scores/<string:student_email>')
+def student_score(student_email):
+
+    values = scores_worksheet.get_all_values()
+    data_json = []
+
+    headers = values[0]
+    for row in values[1:]:
+        if row[1] == student_email:
+            data_json = json.dumps([dict(zip(headers,row))],indent=4)
+    if data_json == []:
+        return jsonify({'message':"Email Not found"})
+    else:
+        return data_json
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
