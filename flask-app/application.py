@@ -4,50 +4,32 @@ import csv
 import json
 import pandas as pd
 import datetime
-import gspread
+
 
 from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
-from collections import OrderedDict
 from collections import defaultdict
-
-sys.path.append('C:/Python39/Lib/site-packages')
-
-
-from oauth2client.service_account import ServiceAccountCredentials
-from dotenv import load_dotenv
-
-load_dotenv()
-users_sheet_url = os.getenv('users_sheet_url')
-scores_sheet_url = os.getenv('scores_sheet_url')
-creds_path = "./credentials.json"
-credential = ServiceAccountCredentials.from_json_keyfile_name(creds_path,
-                                                              ["https://spreadsheets.google.com/feeds",
-                                                               "https://www.googleapis.com/auth/spreadsheets",
-                                                               "https://www.googleapis.com/auth/drive.file",
-                                                               "https://www.googleapis.com/auth/drive"])
-client = gspread.authorize(credential)
-user_worksheet = client.open_by_url(users_sheet_url)
-users_worksheet = user_worksheet.get_worksheet(0)
-score_worksheet = client.open_by_url(scores_sheet_url)
-scores_worksheet = score_worksheet.get_worksheet(0)
+from utils import get_worksheet
 
 sys.path.append('C:/Python39/Lib/site-packages')
 
 app = Flask(__name__)
-CORS(app)
+cors = CORS(app, resources={
+    r"/*": {"origins": "*"},
+
+})
 
 IT_course_dates = {
-    "IDS":["2020-11-09", "2020-12-05"],
-    "PSC":["2020-12-07", "2021-01-02"],
-    "ADS":["2021-01-04", "2021-02-06"],
-    "CN":["2021-02-08", "2021-02-20"],
-    "DB":["2021-02-22", "2021-03-06"],
+    "IDS": ["2020-11-09", "2020-12-05"],
+    "PSC": ["2020-12-07", "2021-01-02"],
+    "ADS": ["2021-01-04", "2021-02-06"],
+    "CN": ["2021-02-08", "2021-02-20"],
+    "DB": ["2021-02-22", "2021-03-06"],
     "Elective-1/Remedial": ["2021-03-08", "2021-04-03"]
 }
 
 SS_course_dates = {
-    "SS":["2021-02-08","2021-04-02"]
+    "SS": ["2021-02-08", "2021-04-02"]
 }
 
 
@@ -63,6 +45,7 @@ def read_folder(student_email):
         "dashboard_data": result
     })
 
+
 @app.route("/zoom_output/<string:student_email>")
 def zoom_att(student_email):
     path = "./zoom_output/" + student_email + ".json"
@@ -74,18 +57,19 @@ def zoom_att(student_email):
         "dashboard_data": result
     })
 
+
 @app.route("/update_data")
 def read_file():
     # print("Hello")
-    grades,course_names = get_student_grades()
+    grades, course_names = get_student_grades()
     ppt_scores = get_presentation_scores()
     data = pd.read_csv("./zoom_attendance_data/zoom_att_IT.csv")
     date = list(data.loc[0].dropna())
-    week =  [each for each in list(data.columns) if 'Unnamed' not in each]
+    week = [each for each in list(data.columns) if 'Unnamed' not in each]
     dates = [each for each in date if 'Unnamed' not in each]
     final_dict = {}
 
-    course_stats = {'attendance':{},'grades':{},'cgpa':[]}
+    course_stats = {'attendance': {}, 'grades': {}, 'cgpa': []}
     time_to_stop = 0
 
     # print(len(data.index))
@@ -124,22 +108,25 @@ def read_file():
                 row_data[j+8] = '-'
             if pd.isna(row_data[j+9]):
                 row_data[j+9] = '-'
-            
+
             if each == '2020-11-25' or flag_it:
                 flag_it = True
                 if each == '2021-02-08' and not flag_ss:
                     flag_ss = True
 
                 if not flag_ss:
-                    row_data_json[each] = {"9:00 AM":row_data[j],"9:00 AM Active minutes":row_data[j+1], "Duration1":row_data[j+2],"11:00 AM":row_data[j+3],"11:00 AM Active minutes":row_data[j+4],"Duration2":row_data[j+5], "Total":row_data[j+6], "2:00 PM": None}
+                    row_data_json[each] = {"9:00 AM": row_data[j], "9:00 AM Active minutes": row_data[j+1], "Duration1": row_data[j+2],
+                                           "11:00 AM": row_data[j+3], "11:00 AM Active minutes": row_data[j+4], "Duration2": row_data[j+5], "Total": row_data[j+6], "2:00 PM": None}
                     j += 7
 
                 else:
-                    row_data_json[each] = {"9:00 AM":row_data[j],"9:00 AM Active minutes":row_data[j+1], "Duration1":row_data[j+2],"11:00 AM":row_data[j+3],"11:00 AM Active minutes":row_data[j+4],"Duration2":row_data[j+5], "Total":row_data[j+6], "2:00 PM":row_data[j+7],"2:00 PM Active minutes":row_data[j+8],"Duration3":row_data[j+9]}
+                    row_data_json[each] = {"9:00 AM": row_data[j], "9:00 AM Active minutes": row_data[j+1], "Duration1": row_data[j+2], "11:00 AM": row_data[j+3], "11:00 AM Active minutes": row_data[j+4],
+                                           "Duration2": row_data[j+5], "Total": row_data[j+6], "2:00 PM": row_data[j+7], "2:00 PM Active minutes": row_data[j+8], "Duration3": row_data[j+9]}
                     j += 10
-            
+
             else:
-                row_data_json[each] = {"9:00 AM":row_data[j],"9:00 AM Active minutes":row_data[j+1], "11:00 AM":row_data[j+2],"11:00 AM Active minutes":row_data[j+3], "Total":row_data[j+4],"2:00 PM": None}
+                row_data_json[each] = {"9:00 AM": row_data[j], "9:00 AM Active minutes": row_data[j+1],
+                                       "11:00 AM": row_data[j+2], "11:00 AM Active minutes": row_data[j+3], "Total": row_data[j+4], "2:00 PM": None}
                 j = j + 5
 
             current_week_data = weeks_dict[week[week_num]]
@@ -151,8 +138,9 @@ def read_file():
             else:
                 current_week_data[each] = row_data_json[each]
                 weeks_dict[week[week_num]] = current_week_data
-            
-        att_grades_data = {'attendance':weeks_dict,"grades":grades[row_data[0].lower()],'ppt_scores':ppt_scores[row_data[0].lower()]}
+
+        att_grades_data = {'attendance': weeks_dict, "grades": grades[row_data[0].lower(
+        )], 'ppt_scores': ppt_scores[row_data[0].lower()]}
         course_stats['cgpa'].append(grades[row_data[0].lower()]['CGPA'])
 
         for course in course_names:
@@ -169,10 +157,12 @@ def read_file():
             temp = IT_course_dates[k]
             start_year, start_month, start_day = map(int, temp[0].split("-"))
             end_year, end_month, end_day = map(int, temp[1].split("-"))
-            start_date_obj = datetime.datetime(start_year, start_month, start_day)
+            start_date_obj = datetime.datetime(
+                start_year, start_month, start_day)
             end_date_obj = datetime.datetime(end_year, end_month, end_day)
-            
-            score = getPercentage(start_date_obj, end_date_obj, weeks_dict, 'IT')
+
+            score = getPercentage(
+                start_date_obj, end_date_obj, weeks_dict, 'IT')
             if score is not None:
                 if k not in course_stats['attendance']:
                     course_stats['attendance'][k] = []
@@ -183,10 +173,12 @@ def read_file():
             temp = SS_course_dates[course]
             start_year, start_month, start_day = map(int, temp[0].split("-"))
             end_year, end_month, end_day = map(int, temp[1].split("-"))
-            start_date_obj = datetime.datetime(start_year, start_month, start_day)
+            start_date_obj = datetime.datetime(
+                start_year, start_month, start_day)
             end_date_obj = datetime.datetime(end_year, end_month, end_day)
-            
-            score = getPercentage(start_date_obj, end_date_obj, weeks_dict, 'SS')
+
+            score = getPercentage(
+                start_date_obj, end_date_obj, weeks_dict, 'SS')
             if score is not None:
                 if course not in course_stats['attendance']:
                     course_stats['attendance'][course] = []
@@ -195,9 +187,9 @@ def read_file():
 
         print(row_data[0].lower())
 
-        with open('./zoom_output/'+ row_data[0].lower()+'.json', "w") as outfile:
+        with open('./zoom_output/' + row_data[0].lower()+'.json', "w") as outfile:
             outfile.write(json.dumps(att_grades_data))
-        
+
         # time_to_stop += 1
         # if time_to_stop == 5:
         #     break
@@ -210,16 +202,18 @@ def read_file():
         "data": "successfully updated"
     })
 
+
 def get_student_grades():
     data_iiit = pd.read_csv("./zoom_attendance_data/CGPA_IIIT.csv")
     data_jntu = pd.read_csv("./zoom_attendance_data/CGPA_JNTU.csv")
-    data = pd.concat([data_iiit[:-6],data_jntu[1:]], ignore_index = True)
-    course_names =  [each for each in list(data.columns) if 'Unnamed' not in each]
+    data = pd.concat([data_iiit[:-6], data_jntu[1:]], ignore_index=True)
+    course_names = [each for each in list(
+        data.columns) if 'Unnamed' not in each]
     column_names = list(data.loc[0].dropna())
 
     grades = {}
 
-    for student in range(1,len(data.index)):
+    for student in range(1, len(data.index)):
         row_data = list(data.loc[student])
         row_data_json = {}
         row_data_json['Sno'] = row_data[0]
@@ -232,43 +226,45 @@ def get_student_grades():
 
         j = 6
         for course in course_names:
-            row_data_json[course] = {"Credits":row_data[j],"Points":row_data[j+1],"Grade":row_data[j+2],"Mentor":row_data[j+3]}
+            row_data_json[course] = {
+                "Credits": row_data[j], "Points": row_data[j+1], "Grade": row_data[j+2], "Mentor": row_data[j+3]}
             j += 4
         grades[row_data[3].lower()] = row_data_json
-    return grades,course_names
+    return grades, course_names
+
 
 def getPercentage(start_date, end_date, data, info_type):
     # print('The start date and the end date: ', start_date, end_date, data)
-    
+
     weeks_list = list(data.keys())[::-1]
     course_score = 0
     total_count = 0         # To keep track of the total sessions
-    
+
     for week in weeks_list:
         week_data = data[week]
-        
+
         for date in week_data:
-            year, month, day = map(int,date.split('-'))
-            
+            year, month, day = map(int, date.split('-'))
+
             date_obj = datetime.datetime(year, month, day)
-            
+
             if date_obj >= start_date and date_obj <= end_date:
                 # Compute the score
                 if info_type == 'IT':
                     current_total = week_data[date]['Total']
                 else:
                     current_total = week_data[date]['2:00 PM']
-                
+
                 if current_total != '-':
                     course_score += float(current_total)
                     total_count += 1
-                    
+
             # the break condition
             if date_obj < start_date:
                 break
         else:
             continue
-        
+
         break
     # print("The result: ", course_score, total_count)
     try:
@@ -276,13 +272,17 @@ def getPercentage(start_date, end_date, data, info_type):
     except Exception as e:
         # print(e)
         return None
-    return round(result,2)
+    return round(result, 2)
+
 
 def get_presentation_scores():
-    data_iiit = pd.read_csv("./zoom_attendance_data/PresentationScores_IIITH.csv")
-    data_jntu = pd.read_csv("./zoom_attendance_data/PresentationScores_JNTUH.csv")
-    data = pd.concat([data_iiit,data_jntu], ignore_index = True)
-    read_total_number_of_presentations =  [each for each in list(data.columns) if 'Unnamed' not in each]
+    data_iiit = pd.read_csv(
+        "./zoom_attendance_data/PresentationScores_IIITH.csv")
+    data_jntu = pd.read_csv(
+        "./zoom_attendance_data/PresentationScores_JNTUH.csv")
+    data = pd.concat([data_iiit, data_jntu], ignore_index=True)
+    read_total_number_of_presentations = [
+        each for each in list(data.columns) if 'Unnamed' not in each]
     total_number_of_presentations = read_total_number_of_presentations[1]
     week_num_list = list(data.loc[0].dropna())
     week_num_list = week_num_list[6:]
@@ -290,7 +290,7 @@ def get_presentation_scores():
 
     ppt_scores = {}
 
-    for student in range(1,len(data.index)):
+    for student in range(1, len(data.index)):
         row_data = list(data.loc[student])
         row_data_json = {}
         row_data_json['roll_number'] = row_data[0]
@@ -309,27 +309,16 @@ def get_presentation_scores():
             else:
                 row_data_json['weekly_scores'].append(row_data[j])
             j += 1
-            
+
         ppt_scores[row_data[1].lower()] = row_data_json
-    
+
     return ppt_scores
 
 
-
-
-def check_duplicate(email):
-    existing_data = users_worksheet.get_all_values()
-    existing_emails = [row[0] for row in existing_data]
-    return email in existing_emails
-
-def add_to_google_sheets(values):
-    users_worksheet.append_rows(values)
-
-
-def process_data(data):
-    existing_emails = [row[0].lower() for row in users_worksheet.get_all_values()]
+def process_data(data, worksheet):
+    existing_emails = [row[0].lower() for row in worksheet.get_all_values()]
     unique_rows = []
-    
+
     if isinstance(data, dict):
         email = data.get('email')
         if email and email.lower() not in existing_emails:
@@ -341,22 +330,28 @@ def process_data(data):
                 unique_rows.append(list(entry.values()))
     else:
         return jsonify({'error': 'Invalid data format'})
-    
+
     if unique_rows:
-        add_to_google_sheets(unique_rows)
+        return unique_rows
+    return [[]]
+
 
 @app.route('/add-users/', methods=['POST'])
 def add_users():
     if 'file' in request.files:
         file = request.files['file']
         if file.filename.endswith('.csv'):
-            reader = list(csv.DictReader(file.read().decode('utf-8').splitlines()))
-            print(reader)
-            process_data(reader)  
+            reader = list(csv.DictReader(
+                file.read().decode('utf-8').splitlines()))
+            worksheet = get_worksheet('users_sheet_url')
+            values = process_data(reader, worksheet)
+            worksheet.append_rows(values)
     else:
         try:
             data = json.loads(request.data.decode('utf-8'))
-            process_data(data)
+            worksheet = get_worksheet('users_sheet_url')
+            values = process_data(data, worksheet)
+            worksheet.append_rows(values)
         except json.JSONDecodeError:
             return jsonify({'error': 'Invalid JSON data format'})
 
@@ -368,39 +363,38 @@ def get_role(email):
     if not email:
         return jsonify({'error': 'Email parameter is missing'}), 400
     try:
-        data = users_worksheet.get_all_records()
-        print("Data from Google Sheet:", data)
+        worksheet = get_worksheet('users_sheet_url')
+        data = worksheet.get_all_records()
         for row in data:
-            print("Row from Google Sheet:", row)
             if row['email'].lower() == email.lower():
-                print(email)
                 return jsonify({'role': row['role']})
-        
         return jsonify({'error': 'Email not found'}), 404
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
+
 
 @app.route('/student-score/<string:student_email>')
 def student_score(student_email):
 
-    values = scores_worksheet.get_all_values()
+    worksheet = get_worksheet('scores_sheet_url')
+    values = worksheet.get_all_values()
     data_json = []
 
     headers = values[0]
     for row in values[1:]:
         if row[1] == student_email:
-            data_json = json.dumps([dict(zip(headers,row))],indent=4)
+            data_json = json.dumps([dict(zip(headers, row))], indent=4)
     if data_json == []:
-        return jsonify({'message':"Email Not found"})
+        return jsonify({'message': "Email Not found"})
     else:
         return data_json
-    
+
 
 @app.route('/all-students-scores')
 def all_students_scores():
-    values = scores_worksheet.get_all_values()
+    worksheet = get_worksheet('scores_sheet_url')
+    values = worksheet.get_all_values()
     data_json = []
     headers = values[0]
 
@@ -411,7 +405,7 @@ def all_students_scores():
         data_json.append(json_object)
 
     if data_json == []:
-        return jsonify({'message':"Data Not found"})
+        return jsonify({'message': "Data Not found"})
     else:
         return data_json
 
