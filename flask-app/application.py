@@ -3,13 +3,16 @@ import os
 import csv
 import json
 import pandas as pd
+import numpy as np
 import datetime
 
 
 from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 from collections import defaultdict
-from utils import get_worksheet
+from gspread_dataframe import set_with_dataframe
+
+from utils import get_worksheet, create_xlsx_sheet, get_sheet_url
 
 sys.path.append('C:/Python39/Lib/site-packages')
 
@@ -315,47 +318,43 @@ def get_presentation_scores():
     return ppt_scores
 
 
-def process_data(data, worksheet):
-    existing_emails = [row[0].lower() for row in worksheet.get_all_values()]
-    unique_rows = []
-
-    if isinstance(data, dict):
-        email = data.get('email')
-        if email and email.lower() not in existing_emails:
-            unique_rows.append(list(data.values()))
-    elif isinstance(data, list):
-        for entry in data:
-            email = entry.get('email')
-            if email and email.lower() not in existing_emails:
-                unique_rows.append(list(entry.values()))
-    else:
-        return jsonify({'error': 'Invalid data format'})
-
-    if unique_rows:
-        return unique_rows
-    return [[]]
-
-
 @app.route('/add-users/', methods=['POST'])
 def add_users():
+    unique_users = []
+    unregistered_users = []
     if 'file' in request.files:
-        file = request.files['file']
-        if file.filename.endswith('.csv'):
-            reader = list(csv.DictReader(
-                file.read().decode('utf-8').splitlines()))
-            worksheet = get_worksheet('users_sheet_url')
-            values = process_data(reader, worksheet)
-            worksheet.append_rows(values)
+        try:
+            file = request.files['file']
+            if file.filename.endswith('.csv'):
+                reader = list(csv.DictReader(
+                    file.read().decode('utf-8').splitlines()))
+                worksheet = get_worksheet('users_sheet')
+                existing_emails = [row[0].lower() for row in worksheet.get_all_values()]
+                
+                for entry in reader:
+                    email = entry.get('email')
+                    if email and email.endswith("@msitprogram.net") and email.lower() not in existing_emails and list(entry.keys())==["email","name","phone_num","role","batch","id"]:
+                        unique_users.append(list(entry.values()))
+                    else:
+                        unregistered_users.append(list(entry.values()))
+                worksheet.append_rows(unique_users)
+        except Exception as e:
+            return jsonify({'Error': e})
     else:
         try:
             data = json.loads(request.data.decode('utf-8'))
-            worksheet = get_worksheet('users_sheet_url')
-            values = process_data(data, worksheet)
-            worksheet.append_rows(values)
+            worksheet = get_worksheet('users_sheet')
+            existing_emails = [row[0].lower() for row in worksheet.get_all_values()]
+            email = data.get('email')
+            if email and email.endswith("@msitprogram.net") and email.lower() not in existing_emails and list(data.keys())==["email","name","phone_num","role","batch","id"]:
+                unique_users.append(list(data.values()))
+            else:
+                unregistered_users.append(list(entry.values()))
+            worksheet.append_rows(unique_users)
         except json.JSONDecodeError:
             return jsonify({'error': 'Invalid JSON data format'})
 
-    return jsonify({'message': 'Data added successfully'})
+    return jsonify({'registered_users': unique_users, 'unregistered_users':unregistered_users})
 
 
 @app.route('/get-role/<string:email>', methods=['GET'])
@@ -363,7 +362,7 @@ def get_role(email):
     if not email:
         return jsonify({'error': 'Email parameter is missing'}), 400
     try:
-        worksheet = get_worksheet('users_sheet_url')
+        worksheet = get_worksheet('users_sheet')
         data = worksheet.get_all_records()
         for row in data:
             if row['email'].lower() == email.lower():
@@ -374,26 +373,10 @@ def get_role(email):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/student-score/<string:student_email>')
-def student_score(student_email):
-
-    worksheet = get_worksheet('scores_sheet_url')
-    values = worksheet.get_all_values()
-    data_json = []
-
-    headers = values[0]
-    for row in values[1:]:
-        if row[1] == student_email:
-            data_json = json.dumps([dict(zip(headers, row))], indent=4)
-    if data_json == []:
-        return jsonify({'message': "Email Not found"})
-    else:
-        return data_json
-
-
-@app.route('/all-students-scores')
-def all_students_scores():
-    worksheet = get_worksheet('scores_sheet_url')
+@app.route('/subject-scores/<string:sheet_name>')
+def subject_scores(sheet_name):
+    
+    worksheet = get_worksheet(sheet_name)
     values = worksheet.get_all_values()
     data_json = []
     headers = values[0]
@@ -408,6 +391,35 @@ def all_students_scores():
         return jsonify({'message': "Data Not found"})
     else:
         return data_json
+
+
+@app.route('/upload-marksheet/', methods=['POST'])
+def upload_marks():
+    file = request.files['file']
+    name = os.path.splitext(file.filename)[0]
+    if file.filename.endswith('.csv'):
+        df = pd.read_csv(file)
+    elif file.filename.endswith(('.xls', '.xlsx')):
+        df = pd.read_excel(file)
+    else:
+        return jsonify({'error': 'Unsupported file format'})
+    
+
+    worksheet = get_worksheet(name)
+    if worksheet:
+        set_with_dataframe(worksheet, df)
+        return jsonify({'message': 'Data updated successfully'})
+    
+    sheet_url=create_xlsx_sheet(name)
+    new_row=[[name, sheet_url]]
+
+    urls_worksheet = get_worksheet('urls_sheet')
+    urls_worksheet.append_rows(new_row)
+
+    worksheet = get_worksheet(name)
+    set_with_dataframe(worksheet, df)
+
+    return jsonify({'message': 'Data added successfully'})
 
 
 if __name__ == '__main__':
