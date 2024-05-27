@@ -1,7 +1,6 @@
 import React, { useState, useRef } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
-import Admin from "../pages/admin"
 import { FaArrowLeft } from "react-icons/fa";
 
 function AddUser() {
@@ -15,6 +14,9 @@ function AddUser() {
   const [role, setRole] = useState("");
   const [batch, setBatch] = useState("");
   const [errors, setErrors] = useState({});
+  const [successMessage, setSuccessMessage] = useState(""); 
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isUploaded, setIsUploaded] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleFileChange = (event) => {
@@ -23,6 +25,12 @@ function AddUser() {
   };
 
   const handleUpload = async () => {
+    if (!file) {
+      setSuccessMessage("");
+      setErrors({ file: "Please select a file." });
+      return;
+    }
+  
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -32,7 +40,9 @@ function AddUser() {
         },
       });
       console.log("File uploaded successfully:", response.data);
-      // Clear the file input
+      setSuccessMessage("Data uploaded successfully");
+      setIsUploaded(true);
+      setErrors({}); 
       setFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = null;
@@ -41,19 +51,34 @@ function AddUser() {
       console.error("Error uploading file:", error.message);
     }
   };
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     const newErrors = {};
 
-    if (!name) newErrors.name = "Name is required";
-    if (!email) newErrors.email = "Email is required";
-    if (!idNumber) newErrors.idNumber = "ID number is required";
+    if (!name) {
+      newErrors.name = "Name is required";
+    } else if (!/^[A-Za-z]+$/.test(name)) {
+      newErrors.name = "Name must contain only alphabets";
+    }
+
+    if (!email) {
+      newErrors.email = "Email is required";
+    } else if (!email.endsWith("@msitprogram.net")) {
+      newErrors.email = "Please login with your msit email";
+    }
+
+    if (!idNumber) {
+      newErrors.idNumber = "ID number is required";
+    }
+
     if (!phoneNumber) {
       newErrors.phoneNumber = "Phone number is required";
-    } else if (phoneNumber.length !== 10) {
-      newErrors.phoneNumber = "Phone number must be 10 digits long";
+    } else if (!/^\d{10}$/.test(phoneNumber)) {
+      newErrors.phoneNumber = "Phone number must be 10 digits long and contain only digits";
+      
     }
 
     setErrors(newErrors);
@@ -61,12 +86,12 @@ function AddUser() {
     if (Object.keys(newErrors).length > 0) return;
 
     const userData = {
-      name,
       email,
-      idNumber,
+      name,
       phoneNumber,
       role,
       batch,
+      idNumber,
     };
 
     try {
@@ -83,6 +108,9 @@ function AddUser() {
       }
 
       console.log("User added successfully");
+      setSuccessMessage("User added successfully");
+      setIsSubmitted(true);
+
       // Reset form fields after successful submission
       setName("");
       setEmail("");
@@ -94,6 +122,24 @@ function AddUser() {
       console.error("Error:", error.message);
     }
   };
+
+  const handleAddUserAgain = () => {
+    setIsSubmitted(false);
+    setSuccessMessage("");
+    setErrors({});
+    setName("");
+    setEmail("");
+    setIdNumber("");
+    setPhoneNumber("");
+    setRole("");
+    setBatch("");
+  };
+
+  const handleUploadAgain = () => {
+    setIsUploaded(false);
+    setSuccessMessage("");
+    setErrors({});
+  }
 
   return (
     <div
@@ -109,10 +155,12 @@ function AddUser() {
         maxWidth: "480px",
       }}
     >
-      <Link to="/admin">  <div style={{position:"absolute",left:"20px"}}><FaArrowLeft style={{height:"28px",color:"black"}}/>
-</div></Link>
-    
-      
+      <Link to="/admin">
+        <div style={{ position: "absolute", left: "20px" }}>
+          <FaArrowLeft style={{ height: "28px", color: "black" }} />
+        </div>
+      </Link>
+
       <nav
         style={{
           display: "flex",
@@ -164,12 +212,12 @@ function AddUser() {
                 color: "rgba(0, 0, 0, 0.5)",
               }}
               placeholder="Name"
-              type="name"
+              type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
             {errors.name && <div style={{ color: "red", marginLeft: "0.375rem" }}>{errors.name}</div>}
-            
+
             <div style={{ marginTop: "1.5rem" }}>Email Address*</div>
             <input
               style={{
@@ -186,7 +234,7 @@ function AddUser() {
               onChange={(e) => setEmail(e.target.value)}
             />
             {errors.email && <div style={{ color: "red", marginLeft: "0.375rem" }}>{errors.email}</div>}
-            
+
             <div style={{ marginTop: "1.5rem" }}>ID number*</div>
             <input
               style={{
@@ -203,7 +251,7 @@ function AddUser() {
               onChange={(e) => setIdNumber(e.target.value)}
             />
             {errors.idNumber && <div style={{ color: "red", marginLeft: "0.375rem" }}>{errors.idNumber}</div>}
-            
+
             <div style={{ marginTop: "1.5rem" }}>Phone Number*</div>
             <div style={{ display: "flex" }}>
               <select
@@ -212,7 +260,7 @@ function AddUser() {
                   borderRadius: "0.75rem",
                   border: "1px solid #E5E5E5",
                   color: "rgba(0, 0, 0, 0.5)",
-                  marginLeft:"2.3rem"
+                  marginLeft: "2.3rem"
                 }}
               >
                 {countryCodeOptions.map((option, index) => (
@@ -221,7 +269,7 @@ function AddUser() {
               </select>
               <input
                 style={{
-                  width: "320px", // Adjusted width to fit next to select
+                  width: "320px",
                   marginLeft: "0.5rem",
                   padding: "0.75rem 1rem",
                   borderRadius: "0.75rem",
@@ -230,12 +278,13 @@ function AddUser() {
                 }}
                 placeholder="Mobile number"
                 type="text"
+                maxLength="10"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
               />
             </div>
             {errors.phoneNumber && <div style={{ color: "red", marginLeft: "0.375rem" }}>{errors.phoneNumber}</div>}
-            
+
             <div style={{ marginTop: "1.5rem" }}>Role*</div>
             <select
               style={{
@@ -254,13 +303,13 @@ function AddUser() {
               <option value="student">Student</option>
               <option value="admin">Admin</option>
             </select>
-            
+
             <div style={{ marginTop: "1.5rem" }}>Batch (Optional)</div>
             <input
               style={{
                 width: "380px",
                 marginLeft: "0.375rem",
-                padding: " 0.75rem 1rem",
+                padding: "0.75rem 1rem",
                 borderRadius: "0.75rem",
                 border: "1px solid #E5E5E5",
                 color: "rgba(0, 0, 0, 0.5)",
@@ -270,49 +319,98 @@ function AddUser() {
               value={batch}
               onChange={(e) => setBatch(e.target.value)}
             />
-            
-            <button
-              type="submit"
-              style={{
-                alignSelf: "center",
-                padding: "1rem 4rem",
-                marginTop: "1.5rem",
-                fontSize: "1rem",
-                fontWeight: "bold",
-                textAlign: "center",
-                color: "#FFFFFF",
-                backgroundColor: "#000000",
-                borderRadius: "0.75rem",
-              }}
-            >
-              Submit
-            </button>
+
+            {!isSubmitted ? (
+              <button
+                type="submit"
+                style={{
+                  alignSelf: "center",
+                  padding: "1rem 4rem",
+                  marginTop: "1.5rem",
+                  fontSize: "1rem",
+                  fontWeight: "bold",
+                  textAlign: "center",
+                  color: "#FFFFFF",
+                  backgroundColor: "#000000",
+                  borderRadius: "0.75rem",
+                }}
+              >
+                Submit
+              </button>
+            ) : (
+              <Link to="/add-user">
+                <button
+                  onClick={handleAddUserAgain}
+                  type="button"
+                  style={{
+                    alignSelf: "center",
+                    padding: "1rem 4rem",
+                    marginTop: "1.5rem",
+                    fontSize: "1rem",
+                    fontWeight: "bold",
+                    textAlign: "center",
+                    color: "#FFFFFF",
+                    backgroundColor: "#000000",
+                    borderRadius: "0.75rem",
+                  }}
+                >
+                  Add User Again
+                </button>
+              </Link>
+            )}
+
+            {successMessage && <div style={{ color: "green", marginTop: "1rem", textAlign: "center" }}>{successMessage}</div>}
           </form>
         )}
-        {selectedAction === "uploadData" && (
-          <div style={{ marginTop: "1.5rem" }}>
-            {/* File input for uploading data */}
-            <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{padding:"4rem 8rem"}} />
-            {/* Button to trigger file upload */}
-            <button
-              type="button"
-              onClick={handleUpload}
-              style={{
-                alignSelf: "center",
-                padding: "1rem 4rem",
-                fontSize: "1rem",
-                fontWeight: "bold",
-                textAlign: "center",
-                color: "#FFFFFF",
-                backgroundColor: "#000000",
-                borderRadius: "0.75rem",
-              }}
-            >
-              Upload
-            </button>
-            
-          </div>
-        )}
+       {selectedAction === "uploadData" && (
+  <div style={{ marginTop: "1.5rem" }}>
+   
+    <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ padding: "4rem 8rem" }} />
+    
+    {!isUploaded ? (
+      <button
+        type="button"
+        onClick={handleUpload}
+        style={{
+          alignSelf: "center",
+          padding: "1rem 4rem",
+          fontSize: "1rem",
+          fontWeight: "bold",
+          textAlign: "center",
+          color: "#FFFFFF",
+          backgroundColor: "#000000",
+          borderRadius: "0.75rem",
+        }}
+      >
+        Upload
+      </button>
+    ) : (
+      <>
+      
+       <button
+        type="button"
+        onClick={handleUploadAgain}
+        style={{
+          alignSelf: "center",
+          padding: "1rem 4rem",
+          fontSize: "1rem",
+          fontWeight: "bold",
+          textAlign: "center",
+          color: "#FFFFFF",
+          backgroundColor: "#000000",
+          borderRadius: "0.75rem",
+        }}
+      >
+        Upload Again
+      </button>
+      <div style={{ color: "green", marginTop: "1rem", textAlign: "center" }}>{successMessage}</div>
+      </>
+    )}
+
+    {errors.file && <div style={{ color: "red", marginTop: "0.5rem" }}>{errors.file}</div>}
+  </div>
+)}
+
       </main>
     </div>
   );

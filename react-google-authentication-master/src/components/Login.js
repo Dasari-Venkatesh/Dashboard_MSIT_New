@@ -51,9 +51,7 @@ function Login(props) {
       case "mentor":
         props.history.push("/mentor");
         break;
-      case "student":
-        props.history.push("/student");
-        break;
+      
       default:
         alert("User role not found or not specified.");
         break;
