@@ -86,12 +86,12 @@ function AddUser() {
     if (Object.keys(newErrors).length > 0) return;
 
     const userData = {
-      email,
-      name,
-      phoneNumber,
-      role,
-      batch,
-      idNumber,
+        email,
+        name,
+        phone_num: phoneNumber,
+        role,
+        batch,
+        id: idNumber,
     };
 
     try {
