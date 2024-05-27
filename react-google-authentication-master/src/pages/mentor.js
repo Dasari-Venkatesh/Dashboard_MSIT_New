@@ -95,8 +95,8 @@ function Mentor() {
       </div>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
         <input type="file" onChange={handleFileChange} style={{ marginLeft: "8rem", marginTop: "2rem" }} />
-        <Button variant="primary" onClick={handleFileUpload} style={{ marginTop: "1rem" }}>
-          Upload Marks
+        <Button variant="primary" onClick={handleFileUpload} style={{ marginTop: "1rem",marginBottom:"2rem" }}>
+         Submit
         </Button>
         {successMessage && <div style={{ color: "green", marginTop: "1rem" }}>{successMessage}</div>}
         {errorMessage && <div style={{ color: "red", marginTop: "1rem" }}>{errorMessage}</div>}

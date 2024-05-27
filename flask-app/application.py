@@ -12,7 +12,7 @@ from flask_cors import CORS
 from collections import defaultdict
 from gspread_dataframe import set_with_dataframe
 
-from utils import get_worksheet, create_xlsx_sheet, get_sheet_url
+from utils import get_worksheet, create_xlsx_sheet, get_sheet_url, validate_fields
 
 sys.path.append('C:/Python39/Lib/site-packages')
 
@@ -333,8 +333,11 @@ def add_users():
                 
                 for entry in reader:
                     email = entry.get('email')
-                    if email and email.endswith("@msitprogram.net") and email.lower() not in existing_emails and list(entry.keys())==["email","name","phone_num","role","batch","id"]:
-                        unique_users.append(list(entry.values()))
+                    if all(key in data for key in ('name', 'email', 'idNumber', 'phoneNumber', 'role')) and (data['role'] != 'student' or data['batch']!=""):
+                        if email and email.endswith("@msitprogram.net") and email.lower() not in existing_emails and validate_fields(entry['name'], entry['idNumber'], entry['phoneNumber']):
+                            unique_users.append(list(entry.values()))
+                        else:
+                            unregistered_users.append(list(entry.values()))
                     else:
                         unregistered_users.append(list(entry.values()))
                 worksheet.append_rows(unique_users)
@@ -346,8 +349,11 @@ def add_users():
             worksheet = get_worksheet('users_sheet')
             existing_emails = [row[0].lower() for row in worksheet.get_all_values()]
             email = data.get('email')
-            if email and email.endswith("@msitprogram.net") and email.lower() not in existing_emails and list(data.keys())==["email","name","phone_num","role","batch","id"]:
-                unique_users.append(list(data.values()))
+            if all(key in data for key in ('name', 'email', 'idNumber', 'phoneNumber', 'role')) and (data['role'] != 'student' or data['batch']!=""):
+                if email and email.endswith("@msitprogram.net") and email.lower() not in existing_emails and validate_fields(data['name'], data['idNumber'], data['phoneNumber']):
+                    unique_users.append(list(data.values()))
+                else:
+                    unregistered_users.append(list(entry.values()))
             else:
                 unregistered_users.append(list(entry.values()))
             worksheet.append_rows(unique_users)
