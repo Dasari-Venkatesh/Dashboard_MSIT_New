@@ -3,6 +3,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import sys
 import os
 import gspread
+import re
 
 sys.path.append('C:/Python39/Lib/site-packages')
 
@@ -62,6 +63,14 @@ def create_xlsx_sheet(sheet_name):
     spreadsheet_url = spreadsheet.url
     print("Spreadsheet URL:", spreadsheet_url)
     return spreadsheet_url
+
+
+def validate_fields(name, id_number, phone_number):
+    if not re.fullmatch(r"[A-Za-z\s]+", name):
+        return False
+    if not (re.fullmatch(r"\d{10}", str(id_number)) and re.fullmatch(r"\d{10}", str(phone_number))):
+        return False
+    return True
 
 # def give_access(sheet_name):
 #     creds_path = "./credentials.json"
