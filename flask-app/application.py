@@ -333,8 +333,8 @@ def add_users():
                 
                 for entry in reader:
                     email = entry.get('email')
-                    if all(key in data for key in ('name', 'email', 'idNumber', 'phoneNumber', 'role')) and (data['role'] != 'student' or data['batch']!=""):
-                        if email and email.endswith("@msitprogram.net") and email.lower() not in existing_emails and validate_fields(entry['name'], entry['idNumber'], entry['phoneNumber']):
+                    if all(key in entry for key in ('email','name','phone_num', 'role', 'batch','id')) and (entry['role'] != 'student' or entry['batch']!=""):
+                        if email and email.endswith("@msitprogram.net") and email.lower() not in existing_emails and validate_fields(entry['name'], entry['id'], entry['phone_num']):
                             unique_users.append(list(entry.values()))
                         else:
                             unregistered_users.append(list(entry.values()))
@@ -349,8 +349,8 @@ def add_users():
             worksheet = get_worksheet('users_sheet')
             existing_emails = [row[0].lower() for row in worksheet.get_all_values()]
             email = data.get('email')
-            if all(key in data for key in ('name', 'email', 'idNumber', 'phoneNumber', 'role')) and (data['role'] != 'student' or data['batch']!=""):
-                if email and email.endswith("@msitprogram.net") and email.lower() not in existing_emails and validate_fields(data['name'], data['idNumber'], data['phoneNumber']):
+            if all(key in data for key in ('email','name','phone_num', 'role', 'batch','id')) and (data['role'] != 'student' or data['batch']!=""):
+                if email and email.endswith("@msitprogram.net") and email.lower() not in existing_emails and validate_fields(data['name'], data['id'], data['phone_num']):
                     unique_users.append(list(data.values()))
                 else:
                     unregistered_users.append(list(entry.values()))
