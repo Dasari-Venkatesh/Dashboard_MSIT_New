@@ -353,9 +353,9 @@ def add_users():
                 if email and email.endswith("@msitprogram.net") and email.lower() not in existing_emails and validate_fields(data['name'], data['id'], data['phone_num']):
                     unique_users.append(list(data.values()))
                 else:
-                    unregistered_users.append(list(entry.values()))
+                    unregistered_users.append(list(data.values()))
             else:
-                unregistered_users.append(list(entry.values()))
+                unregistered_users.append(list(data.values()))
             worksheet.append_rows(unique_users)
         except json.JSONDecodeError:
             return jsonify({'error': 'Invalid JSON data format'})
