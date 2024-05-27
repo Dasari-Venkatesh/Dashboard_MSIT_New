@@ -1,7 +1,6 @@
 import axios from "axios";
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-
+import { Link, useLocation } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
 
 function StudentScores() {
@@ -9,12 +8,17 @@ function StudentScores() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Get the subject name from the query parameters
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const subjectName = searchParams.get("subject");
+
   useEffect(() => {
     const fetchData = async () => {
-      try {     
-        const response = await axios.get("http://127.0.0.1:5000/all-students-scores");
+      try {
+        // Use the subjectName in the API call
+        const response = await axios.get(`http://127.0.0.1:5000/subject-scores/${subjectName}`);
         setStudentData(response.data);
-        console.log(response.data); 
       } catch (error) {
         setError(error.message);
       } finally {
@@ -22,7 +26,7 @@ function StudentScores() {
       }
     };
     fetchData();
-  }, []);
+  }, [subjectName]);
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
@@ -47,8 +51,11 @@ function StudentScores() {
 
   return (
     <div>
-       <Link to="/mentor">  <div style={{position:"absolute",left:"20px"}}><FaArrowLeft style={{height:"28px",color:"black"}}/>
-</div></Link>
+      <Link to="/mentor">
+        <div style={{ position: "absolute", left: "20px" }}>
+          <FaArrowLeft style={{ height: "28px", color: "black" }} />
+        </div>
+      </Link>
       <h1>Student Scores</h1>
       <table style={tableStyle}>
         <thead>
