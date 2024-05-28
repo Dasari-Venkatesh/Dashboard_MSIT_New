@@ -26,7 +26,7 @@ function LoginPrev(props) {
 
     axios
       .get(
-        `https://7seqbvouv4.execute-api.ap-south-1.amazonaws.com/StudentZoom/StudentZoomData_CoursePerformance/?email=${email}`
+        `https://7seqbvouv4.execute-api.ap-south-1.amazonaws.com/StudentZoom/StudentZoomData_CoursePerformance/?email=vedaravutla@msitprogram.net`
       )
       .then((response) => {
         if (response.data === "Student dropped out") {

@@ -24,7 +24,19 @@ function Mentor() {
     if (storedSelectedSubject) {
       setSelectedSubject(storedSelectedSubject);
     }
+
+    // Fetch uploaded sheet names
+    fetchSheetNames();
   }, []);
+
+  const fetchSheetNames = async () => {
+    try {
+      const response = await axios.get("http://127.0.0.1:5000/sheet-names");
+      setUploadedFiles(response.data);
+    } catch (error) {
+      console.error("Error fetching sheet names:", error);
+    }
+  };
 
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0]);
@@ -36,31 +48,21 @@ function Mentor() {
       return;
     }
 
-    const fileNameWithoutExtension = selectedFile.name.replace(/\.[^/.]+$/, "");
-  
-    // Check if the file already exists in uploadedFiles
-    if (uploadedFiles.includes(fileNameWithoutExtension)) {
-      // File already uploaded, update its data
-      setSuccessMessage("Your data has been Data updated successfully.");
-    } else {
-      // File not uploaded yet, proceed with uploading
-      const formData = new FormData();
-      formData.append("file", selectedFile);
+    const formData = new FormData();
+    formData.append("file", selectedFile);
 
-      try {
-        const response = await axios.post("http://127.0.0.1:5000/upload-marksheet/", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
-        const updatedFiles = [...uploadedFiles, fileNameWithoutExtension];
-        setUploadedFiles(updatedFiles);
-        setSuccessMessage(response.data.message);
-        // Store updated uploadedFiles in localStorage
-        localStorage.setItem("uploadedFiles", JSON.stringify(updatedFiles));
-      } catch (error) {
-        setErrorMessage(error.response.data.error || "Error uploading file");
-      }
+    try {
+      const response = await axios.post("http://127.0.0.1:5000/upload-marksheet/", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      setSuccessMessage(response.data.message);
+      // Refresh uploaded sheet names
+      fetchSheetNames();
+    } catch (error) {
+      setErrorMessage(error.response.data.error || "Error uploading file");
     }
   };
 
@@ -70,8 +72,6 @@ function Mentor() {
     // Store selectedSubject in localStorage
     localStorage.setItem("selectedSubject", subject);
   };
-
-
 
   return (
     <div>
@@ -87,17 +87,24 @@ function Mentor() {
             {uploadedFiles.map((fileName, index) => (
               <Dropdown.Item key={index}>
                 <span onClick={() => handleSubjectSelect(fileName)}>{fileName}</span>
-                
               </Dropdown.Item>
             ))}
           </Dropdown.Menu>
         </Dropdown>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <input type="file" onChange={handleFileChange} style={{ marginLeft: "8rem", marginTop: "2rem" }} />
-        <Button variant="primary" onClick={handleFileUpload} style={{ marginTop: "1rem",marginBottom:"2rem" }}>
-         Submit
-        </Button>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center",marginTop:"2rem" }}>
+        <div style={{ border: "2px dotted #ccc", padding: "10px", marginBottom: "20px" ,borderRadius:"10px"}}>
+        <h1 style={{fontSize:"24px",marginTop:"1rem",marginBottom:"1rem"}}>Upload student scores here</h1>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <input type="file" onChange={handleFileChange} style={{ marginLeft: "8rem", marginTop: "1rem" }} />
+          </div>
+          <div>
+          <Button variant="primary" onClick={handleFileUpload} style={{ marginTop: "2rem", marginBottom: "2rem" }}>
+            Submit
+          </Button>
+          </div>
+        </div>
+        
         {successMessage && <div style={{ color: "green", marginTop: "1rem" }}>{successMessage}</div>}
         {errorMessage && <div style={{ color: "red", marginTop: "1rem" }}>{errorMessage}</div>}
       </div>

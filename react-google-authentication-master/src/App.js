@@ -14,6 +14,8 @@ import Mentor from "./pages/mentor";
 import Student from "./pages/student";
 import AddUser from "./pages/addUser"
 import StudentScores from "./pages/studentScore"
+import ProtectedRoute from "./components/ProtectedRoute"
+
 export default function App() {
   const [isLoggedin, setIsLoggedin] = React.useState(false);
   const [email, setEmail] = React.useState("");
@@ -24,21 +26,15 @@ export default function App() {
   const [ss_score, setSSScore] = React.useState("");
   const [dropoutFlag, setDropoutFlag] = React.useState(false);
   const [key, setKey] = React.useState("performance");
+
   return (
     <Router>
       <div className="App" style={{ marginLeft: 15, marginRight: 15 }}>
         <Switch>
-          <Route path="/admin">
-            <Admin />
-          </Route>
-          <Route path="/mentor">
-            <Mentor />
-          </Route>
-          <Route path="/student">
-            <Student />
-          </Route>
-          <Route path="/add-user" component={AddUser} />
-          <Route path="/studentScore" component={StudentScores}/>
+          <ProtectedRoute path="/admin" component={Admin} allowedRoles={['admin']} />
+          <ProtectedRoute path="/mentor" component={Mentor} allowedRoles={['mentor']} />
+          <ProtectedRoute path="/add-user" component={AddUser} allowedRoles={['admin']} />
+          <ProtectedRoute path="/studentScore" component={StudentScores} allowedRoles={['mentor']} />
           <Route path="/" exact component={LandingPage}>
             {isLoggedin ? (
               mentorFlag ? (
@@ -133,19 +129,3 @@ export default function App() {
     </Router>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

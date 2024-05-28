@@ -322,6 +322,7 @@ def get_presentation_scores():
 def add_users():
     unique_users = []
     unregistered_users = []
+    existed_users = []
     if 'file' in request.files:
         try:
             file = request.files['file']
@@ -334,7 +335,9 @@ def add_users():
                 for entry in reader:
                     email = entry.get('email')
                     if all(key in entry for key in ('email','name','phone_num', 'role', 'batch','id')) and (entry['role'] != 'student' or entry['batch']!=""):
-                        if email and email.endswith("@msitprogram.net") and email.lower() not in existing_emails and validate_fields(entry['name'], entry['id'], entry['phone_num']):
+                        if email and email.lower() in existing_emails:
+                            existed_users.append(list(entry.values()))
+                        elif email and email.endswith("@msitprogram.net") and email.lower() not in existing_emails and validate_fields(entry['name'], entry['id'], entry['phone_num']):
                             unique_users.append(list(entry.values()))
                         else:
                             unregistered_users.append(list(entry.values()))
@@ -350,7 +353,9 @@ def add_users():
             existing_emails = [row[0].lower() for row in worksheet.get_all_values()]
             email = data.get('email')
             if all(key in data for key in ('email','name','phone_num', 'role', 'batch','id')) and (data['role'] != 'student' or data['batch']!=""):
-                if email and email.endswith("@msitprogram.net") and email.lower() not in existing_emails and validate_fields(data['name'], data['id'], data['phone_num']):
+                if email and email.lower() in existing_emails:
+                            existed_users.append(list(data.values()))
+                elif email and email.endswith("@msitprogram.net") and email.lower() not in existing_emails and validate_fields(data['name'], data['id'], data['phone_num']):
                     unique_users.append(list(data.values()))
                 else:
                     unregistered_users.append(list(data.values()))
@@ -360,7 +365,7 @@ def add_users():
         except json.JSONDecodeError:
             return jsonify({'error': 'Invalid JSON data format'})
 
-    return jsonify({'registered_users': unique_users, 'unregistered_users':unregistered_users})
+    return jsonify({'registered_users': unique_users, 'unregistered_users':unregistered_users, 'existed_users':existed_users})
 
 
 @app.route('/get-role/<string:email>', methods=['GET'])
@@ -426,6 +431,17 @@ def upload_marks():
     set_with_dataframe(worksheet, df)
 
     return jsonify({'message': 'Data added successfully'})
+
+
+@app.route('/sheet-names')
+def sheet_names():
+    worksheet = get_worksheet("urls_sheet")
+    values = worksheet.get_all_values()
+    sheet_names = []
+    for i in values:
+        if i[0]!="users_sheet":
+            sheet_names.append(i[0])
+    return sheet_names[1:]
 
 
 if __name__ == '__main__':

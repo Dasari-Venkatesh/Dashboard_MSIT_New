@@ -1,6 +1,8 @@
 import React from "react";
 import { Jumbotron, Row, Col, Navbar } from "react-bootstrap";
 import Login from "./Login";
+import LoginPrev from "./LoginPrev"
+
 
 export default function LandingPage(props) {
   return (
@@ -32,6 +34,21 @@ export default function LandingPage(props) {
           <h5>Use your MSIT account to login.</h5>
           <a href="/">
             <Login
+              updateLogin={props.updateLogin}
+              updateEmail={props.updateEmail}
+              updateMentorFlag={props.updateMentorFlag}
+              updateStudentEmailList={props.updateStudentEmailList}
+              updateData={props.updateData}
+              updateScore={props.updateScore}
+              updateSSScore={props.updateSSScore}
+              updateDropoutFlag={props.updateDropoutFlag}
+            />
+          </a>
+        </Col>
+        <Col>
+          <h5>Use your MSIT account to login.</h5>
+          <a href="/">
+            <LoginPrev
               updateLogin={props.updateLogin}
               updateEmail={props.updateEmail}
               updateMentorFlag={props.updateMentorFlag}

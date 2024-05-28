@@ -4,143 +4,150 @@ import { Link } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
 
 function AddUser() {
-  const countryCodeOptions = ["+91", "+1", "+44", "+61", "+86"];
-  const [selectedAction, setSelectedAction] = useState("addSingleUser");
-  const [file, setFile] = useState(null);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [idNumber, setIdNumber] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [role, setRole] = useState("");
-  const [batch, setBatch] = useState("");
-  const [errors, setErrors] = useState({});
-  const [successMessage, setSuccessMessage] = useState(""); 
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isUploaded, setIsUploaded] = useState(false);
-  const fileInputRef = useRef(null);
-
-  const handleFileChange = (event) => {
-    const uploadedFile = event.target.files[0];
-    setFile(uploadedFile);
-  };
-
-  const handleUpload = async () => {
-    if (!file) {
-      setSuccessMessage("");
-      setErrors({ file: "Please select a file." });
-      return;
-    }
+    const countryCodeOptions = ["+91", "+1", "+44", "+61", "+86"];
+    const [selectedAction, setSelectedAction] = useState("addSingleUser");
+    const [file, setFile] = useState(null);
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [idNumber, setIdNumber] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("");
+    const [role, setRole] = useState("");
+    const [batch, setBatch] = useState("");
+    const [errors, setErrors] = useState({});
+    const [successMessage, setSuccessMessage] = useState(""); 
+    const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isUploaded, setIsUploaded] = useState(false);
+    const fileInputRef = useRef(null);
+    const [registeredUsers, setRegisteredUsers] = useState([]);
+    const [unregisteredUsers, setUnregisteredUsers] = useState([]);
+    const [existedUsers,setExistedUsers]=useState([]);
   
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await axios.post("http://127.0.0.1:5000/add-users/", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      console.log("File uploaded successfully:", response.data);
-      setSuccessMessage("Data uploaded successfully");
-      setIsUploaded(true);
-      setErrors({}); 
-      setFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = null;
-      }
-    } catch (error) {
-      console.error("Error uploading file:", error.message);
-    }
-  };
-  
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    const newErrors = {};
-
-    if (!name) {
-      newErrors.name = "Name is required";
-    } else if (!/^[A-Za-z]+$/.test(name)) {
-      newErrors.name = "Name must contain only alphabets";
-    }
-
-    if (!email) {
-      newErrors.email = "Email is required";
-    } else if (!email.endsWith("@msitprogram.net")) {
-      newErrors.email = "Please login with your msit email";
-    }
-
-    if (!idNumber) {
-      newErrors.idNumber = "ID number is required";
-    }
-
-    if (!phoneNumber) {
-      newErrors.phoneNumber = "Phone number is required";
-    } else if (!/^\d{10}$/.test(phoneNumber)) {
-      newErrors.phoneNumber = "Phone number must be 10 digits long and contain only digits";
-      
-    }
-
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length > 0) return;
-
-    const userData = {
-        email,
-        name,
-        phone_num: phoneNumber,
-        role,
-        batch,
-        id: idNumber,
+    const handleFileChange = (event) => {
+      const uploadedFile = event.target.files[0];
+      setFile(uploadedFile);
     };
-
-    try {
-      const response = await fetch("http://127.0.0.1:5000/add-users/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(userData),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to add user");
+  
+    const handleUpload = async () => {
+      if (!file) {
+        setSuccessMessage("");
+        setErrors({ file: "Please select a file." });
+        return;
       }
-
-      console.log("User added successfully");
-      setSuccessMessage("User added successfully");
-      setIsSubmitted(true);
-
-      // Reset form fields after successful submission
+    
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await axios.post("http://127.0.0.1:5000/add-users/", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        console.log("File uploaded successfully:", response.data);
+        setSuccessMessage("Data uploaded successfully");
+        setIsUploaded(true);
+        setErrors({}); 
+        setFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = null;
+        }
+        setRegisteredUsers(response.data.registered_users);
+        setUnregisteredUsers(response.data.unregistered_users);
+        setExistedUsers(response.data.existed_users);
+      } catch (error) {
+        console.error("Error uploading file:", error.message);
+      }
+    };
+    
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      
+      const newErrors = {};
+  
+      if (!name) {
+        newErrors.name = "Name is required";
+      } else if (!/^[A-Za-z]+$/.test(name)) {
+        newErrors.name = "Name must contain only alphabets";
+      }
+  
+      if (!email) {
+        newErrors.email = "Email is required";
+      } else if (!email.endsWith("@msitprogram.net")) {
+        newErrors.email = "Please login with your msit email";
+      }
+  
+      if (!idNumber) {
+        newErrors.idNumber = "ID number is required";
+      }else if (!/^\d{10}$/.test(idNumber)) {
+        newErrors.idNumber = "Please enter your 10 digits Msit id number";
+        
+      }
+  
+      if (!phoneNumber) {
+        newErrors.phoneNumber = "Phone number is required";
+      } else if (!/^\d{10}$/.test(phoneNumber)) {
+        newErrors.phoneNumber = "Phone number must be 10 digits long and contain only digits";
+        
+      }
+  
+      setErrors(newErrors);
+  
+      if (Object.keys(newErrors).length > 0) return;
+  
+      const userData = {
+         email,
+          name,
+          phone_num: phoneNumber,
+          role,
+          batch,
+          id: idNumber,
+      };
+  
+      try {
+        const response = await fetch("http://127.0.0.1:5000/add-users/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(userData),
+        });
+  
+        if (!response.ok) {
+          throw new Error("Failed to add user");
+        }
+  
+        const responseData = await response.json();
+        console.log("User added successfully:", responseData);
+        setSuccessMessage("User added successfully");
+        setIsSubmitted(true);
+  
+        
+      } catch (error) {
+        console.error("Error:", error.message);
+        setErrors({ submit: "Failed to add user. Please try again." });
+      }
+    };
+  
+    const handleAddUserAgain = () => {
+      setIsSubmitted(false);
+      setSuccessMessage("");
+      setErrors({});
       setName("");
       setEmail("");
       setIdNumber("");
       setPhoneNumber("");
       setRole("");
       setBatch("");
-    } catch (error) {
-      console.error("Error:", error.message);
+      setRegisteredUsers([]);
+  setUnregisteredUsers([]);
+  setExistedUsers([]);
+    };
+  
+    const handleUploadAgain = () => {
+      setIsUploaded(false);
+      setSuccessMessage("");
+      setErrors({});
     }
-  };
-
-  const handleAddUserAgain = () => {
-    setIsSubmitted(false);
-    setSuccessMessage("");
-    setErrors({});
-    setName("");
-    setEmail("");
-    setIdNumber("");
-    setPhoneNumber("");
-    setRole("");
-    setBatch("");
-  };
-
-  const handleUploadAgain = () => {
-    setIsUploaded(false);
-    setSuccessMessage("");
-    setErrors({});
-  }
-
+  
   return (
     <div
       style={{
@@ -286,57 +293,64 @@ function AddUser() {
             {errors.phoneNumber && <div style={{ color: "red", marginLeft: "0.375rem" }}>{errors.phoneNumber}</div>}
 
             <div style={{ marginTop: "1.5rem" }}>Role*</div>
-            <select
-              style={{
-                width: "380px",
-                marginLeft: "0.375rem",
-                padding: "0.75rem 1rem",
-                borderRadius: "0.75rem",
-                border: "1px solid #E5E5E5",
-                color: "rgba(0, 0, 0, 0.5)",
-              }}
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-            >
-              <option value="" disabled>Select role</option>
-              <option value="mentor">Mentor</option>
-              <option value="student">Student</option>
-              <option value="admin">Admin</option>
-            </select>
+    <select
+      style={{
+        width: "380px",
+        marginLeft: "0.375rem",
+        padding: "0.75rem 1rem",
+        borderRadius: "0.75rem",
+        border: "1px solid #E5E5E5",
+        color: "rgba(0, 0, 0, 0.5)",
+      }}
+      value={role}
+      onChange={(e) => setRole(e.target.value)}
+    >
+      <option value="" disabled>Select role</option>
+      <option value="mentor">Mentor</option>
+      <option value="student">Student</option>
+      <option value="admin">Admin</option>
+    </select>
 
-            <div style={{ marginTop: "1.5rem" }}>Batch (Optional)</div>
-            <input
-              style={{
-                width: "380px",
-                marginLeft: "0.375rem",
-                padding: "0.75rem 1rem",
-                borderRadius: "0.75rem",
-                border: "1px solid #E5E5E5",
-                color: "rgba(0, 0, 0, 0.5)",
-              }}
-              placeholder="Batch"
-              type="text"
-              value={batch}
-              onChange={(e) => setBatch(e.target.value)}
-            />
+    {role === "student" && ( // Render batch field only for student role
+    <>
+      <div style={{ marginTop: "1.5rem" }}>
+        Batch*
+        </div>
+        <input
+          style={{
+            width: "380px",
+            marginLeft: "0.375rem",
+            padding: "0.75rem 1rem",
+            borderRadius: "0.75rem",
+            border: "1px solid #E5E5E5",
+            color: "rgba(0, 0, 0, 0.5)",
+          }}
+          placeholder="Batch"
+          type="text"
+          value={batch}
+          onChange={(e) => setBatch(e.target.value)}
+        />
+        {errors.batch && <div style={{ color: "red", marginLeft: "0.375rem" }}>{errors.batch}</div>}
+     </>
+    )}
 
-            {!isSubmitted ? (
-              <button
-                type="submit"
-                style={{
-                  alignSelf: "center",
-                  padding: "1rem 4rem",
-                  marginTop: "1.5rem",
-                  fontSize: "1rem",
-                  fontWeight: "bold",
-                  textAlign: "center",
-                  color: "#FFFFFF",
-                  backgroundColor: "#000000",
-                  borderRadius: "0.75rem",
-                }}
-              >
-                Submit
-              </button>
+    {!isSubmitted ? (
+      <button
+        type="submit"
+        style={{
+          alignSelf: "center",
+          padding: "1rem 4rem",
+          marginTop: "1.5rem",
+          fontSize: "1rem",
+          fontWeight: "bold",
+          textAlign: "center",
+          color: "#FFFFFF",
+          backgroundColor: "#000000",
+          borderRadius: "0.75rem",
+        }}
+      >
+        Submit
+      </button>
             ) : (
               <Link to="/add-user">
                 <button
@@ -362,55 +376,90 @@ function AddUser() {
             {successMessage && <div style={{ color: "green", marginTop: "1rem", textAlign: "center" }}>{successMessage}</div>}
           </form>
         )}
-       {selectedAction === "uploadData" && (
-  <div style={{ marginTop: "1.5rem" }}>
-   
-    <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ padding: "4rem 8rem" }} />
-    
-    {!isUploaded ? (
-      <button
-        type="button"
-        onClick={handleUpload}
-        style={{
-          alignSelf: "center",
-          padding: "1rem 4rem",
-          fontSize: "1rem",
-          fontWeight: "bold",
-          textAlign: "center",
-          color: "#FFFFFF",
-          backgroundColor: "#000000",
-          borderRadius: "0.75rem",
-        }}
-      >
-        Upload
-      </button>
-    ) : (
-      <>
-      
-       <button
-        type="button"
-        onClick={handleUploadAgain}
-        style={{
-          alignSelf: "center",
-          padding: "1rem 4rem",
-          fontSize: "1rem",
-          fontWeight: "bold",
-          textAlign: "center",
-          color: "#FFFFFF",
-          backgroundColor: "#000000",
-          borderRadius: "0.75rem",
-        }}
-      >
-        Upload Again
-      </button>
-      <div style={{ color: "green", marginTop: "1rem", textAlign: "center" }}>{successMessage}</div>
-      </>
-    )}
+        {selectedAction === "uploadData" && (
+          <div style={{ marginTop: "1.5rem" }}>
+           
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ padding: "4rem 8rem" }} />
+            
+            {!isUploaded ? (
+              <button
+                type="button"
+                onClick={handleUpload}
+                style={{
+                  alignSelf: "center",
+                  padding: "1rem 4rem",
+                  fontSize: "1rem",
+                  fontWeight: "bold",
+                  textAlign: "center",
+                  color: "#FFFFFF",
+                  backgroundColor: "#000000",
+                  borderRadius: "0.75rem",
+                }}
+              >
+                Upload Csv
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleUploadAgain}
+                  style={{
+                    alignSelf: "center",
+                    padding: "1rem 4rem",
+                    fontSize: "1rem",
+                    fontWeight: "bold",
+                    textAlign: "center",
+                    color: "#FFFFFF",
+                    backgroundColor: "#000000",
+                    borderRadius: "0.75rem",
+                  }}
+                >
+                  Upload Again
+                </button>
+                <div style={{ color: "green", marginTop: "1rem", textAlign: "center" }}>{successMessage}</div>
+              </>
+            )}
+            {errors.file && <div style={{ color: "red", marginTop: "0.5rem" }}>{errors.file}</div>}
 
-    {errors.file && <div style={{ color: "red", marginTop: "0.5rem" }}>{errors.file}</div>}
-  </div>
-)}
-
+            {/* Display registered and unregistered users */}
+            {isUploaded && (
+              <div style={{ marginTop: "1.5rem" }}>
+                <h3>Already existing Users</h3>
+                {existedUsers.length > 0 ? (
+                  <ul>
+                    {existedUsers.map((user, index) => (
+                      <li key={index}>{user[0]}</li> 
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No registered users</p>
+                )}
+                <h3>Registered Users</h3>
+                {registeredUsers.length > 0 ? (
+                  <ul>
+                    {registeredUsers.map((user, index) => (
+                      <li key={index}>{user[0]}</li> 
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No registered users</p>
+                )}
+                <h3>Unregistered Users</h3>
+                {unregisteredUsers.length > 0 ? (
+                  <ul>
+                    <p>Please check the for mandatory fields to be entered</p>
+                    {unregisteredUsers.map((user, index) => (
+                      <li key={index}>{user[0]}</li>
+                       
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No unregistered users</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );
