@@ -33,6 +33,7 @@ export default function App() {
         <Switch>
           <ProtectedRoute path="/admin" component={Admin} allowedRoles={['admin']} />
           <ProtectedRoute path="/mentor" component={Mentor} allowedRoles={['mentor']} />
+          <Route path="/student" component={Student}  />
           <ProtectedRoute path="/add-user" component={AddUser} allowedRoles={['admin']} />
           <ProtectedRoute path="/studentScore" component={StudentScores} allowedRoles={['mentor']} />
           <Route path="/" exact component={LandingPage}>

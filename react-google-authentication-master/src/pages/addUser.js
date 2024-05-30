@@ -116,8 +116,15 @@ function AddUser() {
         }
   
         const responseData = await response.json();
+        console.log(email)
+        console.log(responseData.existed_users);
         console.log("User added successfully:", responseData);
-        setSuccessMessage("User added successfully");
+        if(responseData.existed_users[0].includes(email)){
+            setSuccessMessage("User already existed");
+        }else{
+            setSuccessMessage("User added succesfully")
+        }
+       
         setIsSubmitted(true);
   
         

@@ -46,7 +46,6 @@ export default function LandingPage(props) {
           </a>
         </Col>
         <Col>
-          <h5>Use your MSIT account to login.</h5>
           <a href="/">
             <LoginPrev
               updateLogin={props.updateLogin}
